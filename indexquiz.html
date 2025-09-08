@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script>
+      // Perguntas do quiz
+      const quizQuestions = [
+        {
+          question: "Qual sólido tem 6 faces?",
+          answer: "cube",
+        },
+        {
+          question: "Qual sólido tem 4 faces?",
+          answer: "tetrahedron",
+        },
+        {
+          question: "Qual sólido tem 8 faces?",
+          answer: "octahedron",
+        },
+        {
+          question: "Qual sólido tem 12 faces?",
+          answer: "dodecahedron",
+        },
+        {
+          question: "Qual sólido tem 20 faces?",
+          answer: "icosahedron",
+        },
+      ];
+
+      let currentQuestion = 0;
+      let canAnswer = true;
+
+      // Exibe a pergunta atual
+      function showQuestion() {
+        document.querySelector('#quiz-question').setAttribute('value', quizQuestions[currentQuestion].question);
+        document.querySelector('#quiz-feedback').setAttribute('value', '');
+        canAnswer = true;
+      }
+
+      // Mostra o feedback da resposta
+      function showFeedback(isCorrect) {
+        const feedback = document.querySelector('#quiz-feedback');
+        feedback.setAttribute('value', isCorrect ? 'Correto!' : 'Errado!');
+        canAnswer = false;
+        setTimeout(() => {
+          currentQuestion++;
+          if (currentQuestion < quizQuestions.length) {
+            showQuestion();
+          } else {
+            feedback.setAttribute('value', 'Quiz finalizado!');
+            document.querySelector('#quiz-question').setAttribute('value', '');
+          }
+        }, 1500);
+      }
+
+      // Componente para responder ao quiz quando seleciona um sólido
+      AFRAME.registerComponent('quiz-option', {
+        schema: { solid: { type: 'string' } },
+        init: function () {
+          this.el.addEventListener('click', () => {
+            if (!canAnswer) return;
+            const selected = this.data.solid;
+            const answer = quizQuestions[currentQuestion].answer;
+            showFeedback(selected === answer);
+          });
+        }
+      });
+
+      // Inicia a primeira pergunta
+      window.onload = showQuestion;
+    </script>
+    <style>
+      body { margin: 0; }
+    </style>
+  </head>
+  <body>
+    <a-scene>
+      <!-- Câmera com cursor -->
+      <a-camera position="0 1.6 4">
+        <a-cursor color="yellow"></a-cursor>
+      </a-camera>
+
+      <!-- Quarto 3D como ambiente -->
+      <a-assets>
+        <a-asset-item id="quarto3d" src="quarto1.glb"></a-asset-item>
+      </a-assets>
+      <a-entity id="quarto-fundo" gltf-model="#quarto3d" position="0 0 0" scale="2 2 2"></a-entity>
+
+      <!-- Pergunta do quiz -->
+      <a-text id="quiz-question" value="" position="0 3 -3" align="center" color="yellow" width="6"></a-text>
+      <!-- Feedback da resposta -->
+      <a-text id="quiz-feedback" value="" position="0 2.5 -3" align="center" color="cyan" width="6"></a-text>
+
+      <!-- Sólidos geométricos como opções do quiz -->
+      <a-entity position="-6 1 -5" quiz-option="solid: tetrahedron">
+        <a-entity geometry="primitive: tetrahedron" material="color: #FF0000; opacity: 0.7"></a-entity>
+        <a-text value="Tetraedro" align="center" position="0 -1 0" color="white"></a-text>
+      </a-entity>
+      <a-entity position="-3 1 -5" quiz-option="solid: cube">
+        <a-entity geometry="primitive: box" material="color: #00FF00; opacity: 0.7"></a-entity>
+        <a-text value="Cubo" align="center" position="0 -1 0" color="white"></a-text>
+      </a-entity>
+      <a-entity position="0 1 -5" quiz-option="solid: octahedron">
+        <a-entity geometry="primitive: octahedron" material="color: #0000FF; opacity: 0.7"></a-entity>
+        <a-text value="Octaedro" align="center" position="0 -1 0" color="white"></a-text>
+      </a-entity>
+      <a-entity position="3 1 -5" quiz-option="solid: dodecahedron">
+        <a-entity geometry="primitive: dodecahedron" material="color: #FFFF00; opacity: 0.7"></a-entity>
+        <a-text value="Dodecaedro" align="center" position="0 -1 0" color="black"></a-text>
+      </a-entity>
+      <a-entity position="6 1 -5" quiz-option="solid: icosahedron">
+        <a-entity geometry="primitive: icosahedron" material="color: #FF00FF; opacity: 0.7"></a-entity>
+        <a-text value="Icosaedro" align="center" position="0 -1 0" color="white"></a-text>
+      </a-entity>
+
+      <!-- Luzes -->
+      <a-light type="ambient" color="#FFFFFF" intensity="0.5"></a-light>
+      <a-light type="point" intensity="1" position="2 4 4"></a-light>
+    </a-scene>
+  </body>
+</html>
