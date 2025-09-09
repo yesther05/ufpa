@@ -1,219 +1,208 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz VR - Sólidos Geométricos</title>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <style>
+    body { margin:0; padding:0; overflow:hidden; background:#222; }
+    #start-button {
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      padding:15px 30px; font-size:20px; background:#4CAF50; color:#fff;
+      border:none; border-radius:5px; cursor:pointer; z-index:1000;
+    }
+  </style>
+</head>
+<body>
+  <button id="start-button">Iniciar Quiz</button>
 
-   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script>
-      // Componente para fazer objetos girarem lentamente
-      AFRAME.registerComponent('rotate', {
-        schema: { speed: { type: 'number', default: 0.3 } },
-        tick: function (time, deltaTime) {
-          this.el.object3D.rotation.y += (deltaTime / 1000) * this.data.speed;
-        }
-      });
+  <a-scene>
+    <a-sky color="#6e9cff"></a-sky>
 
-      // Componente para exibir arestas de um sólido sem diagonais
-      AFRAME.registerComponent('wireframe', {
-        schema: { color: { type: 'string', default: 'white' } },
-        init: function () {
-          const mesh = this.el.getObject3D('mesh');
-          if (mesh) {
-            const geometry = mesh.geometry.clone();
+    <a-entity id="cameraRig" position="0 1.6 0">
+      <a-camera id="camera" look-controls>
+        <!-- Cursor gaze -->
+        <a-cursor id="cursor" fuse="true" fuseTimeout="2000" color="#FFF"></a-cursor>
 
-            // Remove diagonais para cubo e prismas
-            if (geometry.type === "BoxGeometry" || geometry.type === "CylinderGeometry") {
-              geometry.clearGroups(); // Remove diagonais internas adicionadas automaticamente
-            }
-
-            const wireframe = new THREE.WireframeGeometry(geometry);
-            const line = new THREE.LineSegments(wireframe);
-            line.material.depthTest = false;
-            line.material.opacity = 0.5;
-            line.material.transparent = true;
-            line.material.color = new THREE.Color(this.data.color);
-            this.el.object3D.add(line);
-          }
-        }
-      });
-
-      // Função para destacar vértices no sólido exibido
-      function highlightVertices(el) {
-        const mesh = el.getObject3D('mesh');
-        if (!mesh || !mesh.geometry || !mesh.geometry.attributes || !mesh.geometry.attributes.position) {
-          return; // Não destaca vértices para objetos que não possuem geometria baseada em vértices
-        }
-
-        const positionAttribute = mesh.geometry.attributes.position;
-        for (let i = 0; i < positionAttribute.count; i++) {
-          const vertex = new THREE.Vector3(
-            positionAttribute.getX(i),
-            positionAttribute.getY(i),
-            positionAttribute.getZ(i)
-          );
-
-          const vertexEntity = document.createElement('a-sphere');
-          vertexEntity.setAttribute('position', `${vertex.x} ${vertex.y} ${vertex.z}`);
-          vertexEntity.setAttribute('radius', '0.05');
-          vertexEntity.setAttribute('color', 'yellow');
-          el.appendChild(vertexEntity);
-        }
-      }
-
-      // Função para exibir informações sobre o sólido
-      function displaySolidInfo(type) {
-        const infoEntity = document.querySelector('#solid-info');
-        const solidsData = {
-          tetrahedron: { faces: 4, vertices: 4, edges: 6 },
-          cube: { faces: 6, vertices: 8, edges: 12 },
-          octahedron: { faces: 8, vertices: 6, edges: 12 },
-          dodecahedron: { faces: 12, vertices: 20, edges: 30 },
-          icosahedron: { faces: 20, vertices: 12, edges: 30 }
-        };
-
-        const data = solidsData[type];
-        if (data) {
-          infoEntity.setAttribute(
-            'value',
-            `Faces: ${data.faces}\nVértices: ${data.vertices}\nArestas: ${data.edges}`
-          );
-        } else {
-          infoEntity.setAttribute('value', '');
-        }
-      }
-
-      // Componente para planificar o sólido após 2 segundos
-      AFRAME.registerComponent('flatten-on-hover', {
-        init: function () {
-          let timeout;
-          const el = this.el;
-
-          el.addEventListener('mouseenter', () => {
-            timeout = setTimeout(() => {
-              // Planifica o sólido ao redefinir sua escala no eixo Y
-              el.setAttribute('scale', '2 0.01 2'); // Planifica no eixo Y
-            }, 2000); // 2 segundos
-          });
-
-          el.addEventListener('mouseleave', () => {
-            clearTimeout(timeout); // Cancela a planificação se o cursor sair
-            el.setAttribute('scale', '2 2 2'); // Restaura a escala original
-          });
-        }
-      });
-
-      // Componente para selecionar o objeto ao olhar para ele
-      AFRAME.registerComponent('select-on-hover', {
-        schema: { target: { type: 'string' } },
-        init: function () {
-          let timeout;
-          const data = this.data;
-
-          this.el.addEventListener('mouseenter', () => {
-            timeout = setTimeout(() => {
-              // Esconde todos os modelos
-              const models = document.querySelectorAll('.model');
-              models.forEach(model => {
-                model.setAttribute('visible', false);
-                model.innerHTML = ''; // Remove vértices anteriores
-              });
-
-              // Exibe o modelo selecionado
-              const selectedModel = document.querySelector(`#${data.target}`);
-              selectedModel.setAttribute('visible', true);
-              selectedModel.setAttribute('scale', '2 2 2');
-              selectedModel.setAttribute('position', '0 1 -3');
-              selectedModel.setAttribute('rotate', 'speed: 0.3');
-
-              // Exibe informações sobre o sólido
-              displaySolidInfo(data.target);
-
-              // Destaca vértices
-              highlightVertices(selectedModel);
-            }, 2000); // 2 segundos para selecionar
-          });
-
-          this.el.addEventListener('mouseleave', () => {
-            clearTimeout(timeout); // Cancela a seleção se o cursor sair
-          });
-        }
-      });
-    </script>
-    <style>
-      body {
-        margin: 0;
-      }
-    </style>
-  </head>
-  <body>
-   <a-scene>
-      <!-- Câmera com cursor -->
-      <a-camera position="0 1.6 4">
-        <a-cursor color="yellow"></a-cursor>
+        <!-- Placar no HUD -->
+        <a-entity id="scoreLabel"
+          text="value: Placar: 0; align: left; color: yellow; width: 2"
+          position="-1.2 0.8 -1.5">
+        </a-entity>
       </a-camera>
+    </a-entity>
 
-      <!-- Adicione o quarto 3D como fundo/ambiente -->
-      <a-assets>
-        <a-asset-item id="quarto3d" src="quarto1.glb"></a-asset-item>
-      </a-assets>
-      <a-entity 
-        id="quarto-fundo"
-        gltf-model="#quarto3d"
-        position="0 0 0"
-        scale="2 2 2"
-      ></a-entity>
-     <!-- Informações sobre o sólido -->
-      <a-text id="solid-info" position="0 -2 -3" align="center" color="white" value=""></a-text>
+    <!-- Container do Quiz -->
+    <a-entity id="quiz-container" position="0 2.9 -4" visible="false">
+      <!-- Pergunta -->
+      <a-image id="pergunta-img" position="0 1.5 0" width="3.5" height="1.2"></a-image>
 
-      <!-- Luzes -->
-      <a-light type="ambient" color="#FFFFFF" intensity="0.5"></a-light>
-      <a-light type="point" intensity="1" position="2 4 4"></a-light>
+      <!-- Opções -->
+      <a-entity id="opcoes" position="0 -0.5 0"></a-entity>
 
-      <!-- Objetos em fila horizontal elevados -->
-      <a-entity position="-6 4 -5" select-on-hover="target: tetrahedron">
-        <a-entity geometry="primitive: tetrahedron" material="color: #FF0000; opacity: 0.5" rotate wireframe="color: white"></a-entity>
-        <a-text value="Tetraedro" align="center" position="0 -1 0" color="white"></a-text>
+      <!-- Mensagem de feedback -->
+      <a-entity id="feedbackLabel"
+        text="value: ; align: center; color: white; width: 3"
+        position="0 -2 0">
       </a-entity>
+    </a-entity>
+  </a-scene>
 
-      <a-entity position="-3 4 -5" select-on-hover="target: cube">
-        <a-entity geometry="primitive: box" material="color: #00FF00; opacity: 0.5" rotate wireframe="color: white"></a-entity>
-        <a-text value="Cubo" align="center" position="0 -1 0" color="white"></a-text>
-      </a-entity>
+  <script>
+    const quiz = [
+      {
+        perguntaImg: "figpage/pergunta1.png",
+        opcoes: [
+          {img:"figpage/q1a.png", resposta:"Quadrado"},
+          {img:"figpage/q1b.png", resposta:"Triângulo"},
+          {img:"figpage/q1c.png", resposta:"Círculo"},
+          {img:"figpage/q1d.png", resposta:"Cubo"}
+        ],
+        correta: "Cubo"
+      },
+      {
+        perguntaImg: "figpage/pergunta2.png",
+        opcoes: [
+          {img:"figpage/q2a.png", resposta:"4"},
+          {img:"figpage/q2b.png", resposta:"6"},
+          {img:"figpage/q2c.png", resposta:"8"},
+          {img:"figpage/q2d.png", resposta:"12"}
+        ],
+        correta: "6"
+      },
+      {
+        perguntaImg: "figpage/pergunta3.png",
+        opcoes: [
+          {img:"figpage/q3a.png", resposta:"Cone"},
+          {img:"figpage/q3b.png", resposta:"Esfera"},
+          {img:"figpage/q3c.png", resposta:"Prisma"},
+          {img:"figpage/q3d.png", resposta:"Cubo"}
+        ],
+        correta: "Cone"
+      },
+      {
+        perguntaImg: "figpage/pergunta4.png",
+        opcoes: [
+          {img:"figpage/q4a.png", resposta:"Esfera"},
+          {img:"figpage/q4b.png", resposta:"Cilindro"},
+          {img:"figpage/q4c.png", resposta:"Cubo"},
+          {img:"figpage/q4d.png", resposta:"Pirâmide"}
+        ],
+        correta: "Cubo"
+      },
+      {
+        perguntaImg: "figpage/pergunta5.png",
+        opcoes: [
+          {img:"figpage/q5a.png", resposta:"Cone"},
+          {img:"figpage/q5b.png", resposta:"Cubo"},
+          {img:"figpage/q5c.png", resposta:"Cilindro"},
+          {img:"figpage/q5d.png", resposta:"Pirâmide"}
+        ],
+        correta: "Cilindro"
+      },
+      {
+        perguntaImg: "figpage/pergunta6.png",
+        opcoes: [
+          {img:"figpage/q6a.png", resposta:"Esfera"},
+          {img:"figpage/q6b.png", resposta:"Cilindro"},
+          {img:"figpage/q6c.png", resposta:"Pirâmide"},
+          {img:"figpage/q6d.png", resposta:"Cubo"}
+        ],
+        correta: "Pirâmide"
+      }
+    ];
 
-      <a-entity position="0 4 -5" select-on-hover="target: octahedron">
-        <a-entity geometry="primitive: octahedron" material="color: #0000FF; opacity: 0.5" rotate wireframe="color: white"></a-entity>
-        <a-text value="Octaedro" align="center" position="0 -1 0" color="white"></a-text>
-      </a-entity>
+    let perguntaAtual = 0;
+    let score = 0;
+    const perguntaImgEl = document.getElementById("pergunta-img");
+    const opcoesEl = document.getElementById("opcoes");
+    const startButton = document.getElementById("start-button");
+    const quizContainer = document.getElementById("quiz-container");
+    const feedbackLabel = document.getElementById("feedbackLabel");
+    const scoreLabel = document.getElementById("scoreLabel");
+    const camera = document.getElementById("camera");
 
-      <a-entity position="3 4 -5" select-on-hover="target: dodecahedron">
-        <a-entity geometry="primitive: dodecahedron" material="color: #FFFF00; opacity: 0.5" rotate wireframe="color: white"></a-entity>
-        <a-text value="Dodecaedro" align="center" position="0 -1 0" color="white"></a-text>
-      </a-entity>
+    startButton.addEventListener("click", () => {
+      startButton.style.display="none";
+      quizContainer.setAttribute("visible","true");
+      carregarPergunta();
+    });
 
-      <a-entity position="6 4 -5" select-on-hover="target: icosahedron">
-        <a-entity geometry="primitive: icosahedron" material="color: #FF00FF; opacity: 0.5" rotate wireframe="color: white"></a-entity>
-        <a-text value="Icosaedro" align="center" position="0 -1 0" color="white"></a-text>
-      </a-entity>
+    function carregarPergunta(){
+      if(perguntaAtual>=quiz.length){ finalizarQuiz(); return; }
+      const dados=quiz[perguntaAtual];
+      perguntaImgEl.setAttribute("src",dados.perguntaImg);
+      feedbackLabel.setAttribute("text","value: ");
+      opcoesEl.innerHTML="";
 
-      <!-- Modelo selecionado exibido no centro -->
-      <a-entity id="tetrahedron" class="model" geometry="primitive: tetrahedron" material="color: #FF0000; opacity: 0.5" visible="false" rotate wireframe="color: white" flatten-on-hover></a-entity>
-      <a-entity id="cube" class="model" geometry="primitive: box" material="color: #00FF00; opacity: 0.5" visible="false" rotate wireframe="color: white" flatten-on-hover></a-entity>
-      <a-entity id="octahedron" class="model" geometry="primitive: octahedron" material="color: #0000FF; opacity: 0.5" visible="false" rotate wireframe="color: white" flatten-on-hover></a-entity>
-      <a-entity id="dodecahedron" class="model" geometry="primitive: dodecahedron" material="color: #FFFF00; opacity: 0.5" visible="false" rotate wireframe="color: white" flatten-on-hover></a-entity>
-      <a-entity id="icosahedron" class="model" geometry="primitive: icosahedron" material="color: #FF00FF; opacity: 0.5" visible="false" rotate wireframe="color: white" flatten-on-hover></a-entity>
+      const positions = [
+        "-1 0.5 0", "1 0.5 0",
+        "-1 -0.8 0", "1 -0.8 0"
+      ];
 
-      <!-- Informações sobre o sólido -->
-      <a-text id="solid-info" position="0 -2 -3" align="center" color="white" value=""></a-text>
+      dados.opcoes.forEach((opcao,i)=>{
+        const img=document.createElement("a-image");
+        img.setAttribute("src",opcao.img);
+        img.setAttribute("width","1.3");
+        img.setAttribute("height","1.3");
+        img.setAttribute("position", positions[i]);
+        img.setAttribute("class","opcao");
+        img.setAttribute("data-resposta",opcao.resposta);
+        img.addEventListener("click",()=>verificarResposta(opcao.resposta,dados.correta));
+        opcoesEl.appendChild(img);
+      });
+    }
 
-      <!-- Luzes -->
-      <a-light type="ambient" color="#FFFFFF" intensity="0.5"></a-light>
-      <a-light type="point" intensity="1" position="2 4 4"></a-light>
+    function verificarResposta(selecionada,correta){
+      if(selecionada===correta){
+        score++;
+        scoreLabel.setAttribute("text",`value: Placar: ${score}`);
+        feedbackLabel.setAttribute("text","value: ✔ Correto!; color: lime");
+        perguntaAtual++;
+        resetarVisao();
+        setTimeout(carregarPergunta,1500);
+      }else{
+        feedbackLabel.setAttribute("text","value: ✘ Incorreto!; color: red");
+        resetarVisao();
+      }
+    }
 
-      <!-- Mundo 360° -->
+    function finalizarQuiz(){
+      perguntaImgEl.setAttribute("src","figpage/final.png");
+      opcoesEl.innerHTML="";
+      feedbackLabel.setAttribute("text",`value: Quiz finalizado! Placar: ${score}/${quiz.length}; color: yellow`);
 
-                <!-- Carregar a imagem panoramica -->
-     <!-- <a-sky id="fundo" src="carata.jpg" rotation="0 -130 0"></a-sky-->
-    </a-scene>
-  </body>
+      // Botão reinício
+      const btn=document.createElement("a-box");
+      btn.setAttribute("color","#4CAF50");
+      btn.setAttribute("depth","0.2");
+      btn.setAttribute("height","0.6");
+      btn.setAttribute("width","2");
+      btn.setAttribute("position","0 -3 0");
+      btn.setAttribute("class","reiniciar");
+
+      const txt=document.createElement("a-entity");
+      txt.setAttribute("text","value: Reiniciar; align: center; color: white; width: 3");
+      txt.setAttribute("position","0 0 0.2");
+      btn.appendChild(txt);
+
+      btn.addEventListener("click", reiniciarQuiz);
+      opcoesEl.appendChild(btn);
+    }
+
+    function reiniciarQuiz(){
+      perguntaAtual=0;
+      score=0;
+      scoreLabel.setAttribute("text","value: Placar: 0");
+      carregarPergunta();
+    }
+
+    function resetarVisao(){
+      // Reposiciona visão ao centro
+      camera.components["look-controls"].pitchObject.rotation.x=0;
+      camera.components["look-controls"].yawObject.rotation.y=0;
+    }
+  </script>
+</body>
 </html>
-
-
